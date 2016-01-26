@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/darkbg"
+    android:orientation="vertical" >
+    
+    
+  <!--   <FrameLayout 
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="9"
+        android:id="@+id/main_fragment"
+        android:orientation="vertical"
+        >
+    </FrameLayout> -->
+    <android.support.v4.view.ViewPager
+        android:id="@+id/view_pager"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="9" ></android.support.v4.view.ViewPager>
+    
+    
+    <LinearLayout 
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="@color/white"
+        android:orientation="horizontal"
+        >
+        
+        <RadioGroup 
+            android:id="@+id/rg_main"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            >
+            
+            
+            <RadioButton 
+                android:id="@+id/rb_repair"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#00000000"
+                android:button="@null"
+                android:text="报修"
+                android:textColor="@color/darkblack"
+                android:drawableTop="@drawable/update_selector"
+                android:gravity="center|bottom"
+                android:paddingBottom="5dp"
+                android:paddingTop="5dp"
+                />
+            
+               <RadioButton 
+                android:id="@+id/rb_torepair"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#00000000"
+                android:button="@null"
+                android:text="维修"
+                android:textColor="@color/darkblack"
+                android:drawableTop="@drawable/business_selector"
+                android:gravity="center|bottom"
+                android:paddingBottom="3dp"
+                android:paddingTop="3dp"
+                />
+               
+                <RadioButton 
+                android:id="@+id/rb_mine"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#00000000"
+                android:button="@null"
+                android:text="我的"
+                android:textColor="@color/darkblack"
+                android:drawableTop="@drawable/mine_selector"
+                android:gravity="center|bottom"
+                android:paddingBottom="5dp"
+                android:paddingTop="5dp"
+                />
+            
+        </RadioGroup>
+        
+    </LinearLayout>
+    
+
+</LinearLayout>
