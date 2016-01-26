@@ -12,12 +12,12 @@
             android:id="@+id/ivadminbg"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@drawable/repairsystem_title" />
+            android:background="@color/maintitle" />
 
-        <Button
+        <ImageButton
             android:id="@+id/btnBackAdmin"
-            android:layout_width="70dp"
-            android:layout_height="40dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"
             android:layout_marginLeft="10dp"
@@ -30,15 +30,6 @@
             android:text="系统设置"
             android:textColor="#ffffff"
             android:textSize="20sp" />
-
-        <Button
-            android:id="@+id/btnSaveSetting"
-            android:layout_width="70dp"
-            android:layout_height="40dip"
-            android:layout_alignParentRight="true"
-            android:layout_centerVertical="true"
-            android:layout_marginRight="10dp"
-            android:background="@drawable/btn_ok" />
     </RelativeLayout>
 
     <LinearLayout
@@ -103,19 +94,17 @@
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
-
-    <Button
-        android:id="@+id/btnConnect"
+	<Button
+        android:id="@+id/btnSaveSetting"
         android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_margin="10dp"
-        android:background="@drawable/button"
-        android:paddingBottom="1dp"
-        android:paddingTop="1dp"
-        android:text="连接服务器"
-        android:textColor="#ffffff"
-        android:textSize="20sp" />
-
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:layout_marginBottom="10dp"
+        android:text="保存"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/long_button" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

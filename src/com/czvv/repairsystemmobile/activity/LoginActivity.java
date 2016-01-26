@@ -1,21 +1,24 @@
 package com.czvv.repairsystemmobile.activity;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.Toast;
-import android_serialport_api.sample.Application;
-import android_serialport_api.sample.ExitApplication;
 
+import com.czvv.repairsystemmobile.Constants;
+import com.czvv.repairsystemmobile.MApplication;
 import com.czvv.repairsystemmobile.R;
+import com.czvv.repairsystemmobile.base.BaseActivity;
 import com.czvv.repairsystemmobile.dao.Sys_userDao;
-import com.czvv.repairsystemmobile.utils.Constants;
+import com.czvv.repairsystemmobile.utils.AlertUtils;
 import com.czvv.repairsystemmobile.utils.MD5Utils;
 import com.czvv.repairsystemmobile.utils.SharedPreferencesUtil;
 import com.czvv.repairsystemmobile.utils.ThreadUtils;
@@ -23,85 +26,104 @@ import com.czvv.repairsystemmobile.utils.ToastUtils;
 import com.lidroid.xutils.ViewUtils;
 import com.lidroid.xutils.view.annotation.ViewInject;
 
-public class LoginActivity extends RepairBaseActivity {
+public class LoginActivity extends BaseActivity {
 
 	@ViewInject(R.id.etLoginName)
 	EditText etLoginName;
 	@ViewInject(R.id.etPassword)
 	EditText etPassword;
-	@ViewInject(R.id.btn_Admin_Login)
-	ImageButton btnAdminLogin;
 	@ViewInject(R.id.btnLogin)
-	ImageButton btnLogin;
+	Button btnLogin;
 
 	private Sys_userDao userDao;
 	private Activity act;
 	private SharedPreferences sp;
+	private Dialog loadingDialog;
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_login);
-
-		ViewUtils.inject(this);
-		act = this;
-		sp = getSharedPreferences("serviceInfo", MODE_PRIVATE);
-		sp.edit().putString("loginName", "").commit();
-		userDao = Sys_userDao.getInstance(this);
-
-		init();
+	public int bindLayout() {
+		return R.layout.activity_login;
 	}
 
-	private void init() {
-		btnAdminLogin.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				Intent intent = new Intent();
-				intent.setClass(LoginActivity.this, LoginAdminActivity.class);
-				startActivity(intent);
-			}
-		});
-
+	@Override
+	public void initView(View view) {
+		ViewUtils.inject(this);
 		btnLogin.setOnClickListener(new OnClickListener() {
 
 			@Override
 			public void onClick(View v) {
-				String loginName = etLoginName.getText().toString().trim();
-				String password = MD5Utils.md5Encode(etPassword.getText().toString().trim());
+				
+				String serverIP = sp.getString("serverIP", "");
+				String serverPort = sp.getString("serverPort", "");
+				if (serverIP != null && !"".equals(serverIP) && serverPort != null
+						&& !"".equals(serverPort)) {
+					MApplication.assignData("url", "http://" + serverIP + ":" + serverPort
+							+ Constants.SERVICE_PAGE);
+				}
+				
+				final String loginName = etLoginName.getText().toString().trim();
+				final String password = MD5Utils.md5Encode(etPassword.getText()
+						.toString().trim());
+				final String pwd = etPassword.getText()
+						.toString().trim();
 				if ("".equals(loginName) || "".equals(password)) {
 					ToastUtils.showToast(act, "’ ∫≈ªÚ√‹¬Î≤ªƒ‹Œ™ø’");
 					return;
 				}
 
-				matchUser(loginName, password);
-				// startActivity(new Intent(act,SelectDevActivity.class));
+				loadingDialog = AlertUtils.createLoadingDialog(LoginActivity.this, "’˝‘⁄µ«¬Ω£¨«Î…‘∫Û...");
+				loadingDialog.show();
+				
+				ThreadUtils.runInBackground(new Runnable() {
+
+					@Override
+					public void run() {
+						SystemClock.sleep(1000);
+						if(Constants.ADMIN_LOGINNAME.equalsIgnoreCase(loginName) && Constants.ADMIN_PASSWORD.equals(pwd)){
+							startActivity(new Intent(LoginActivity.this,AdminActivity.class));
+							overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
+						}else{
+							matchUser(loginName, password);
+						}
+					}
+				});
 			}
 		});
-	}
-
-	protected void matchUser(final String loginName, final String password) {
-		ThreadUtils.runInBackground(new Runnable() {
-
-			@Override
-			public void run() {
-				boolean avaiLogin = userDao.avaiLogin(loginName, password);
-				if (avaiLogin) {
-					sp.edit().putString("loginName", loginName).commit();
-					startActivity(new Intent(act, SelectDevActivity.class));
-				} else {
-					ToastUtils.showToast(act, "’À∫≈ªÚ’ﬂ√‹¬Î¥ÌŒÛ");
-				}
-			}
-		});
-
 	}
 
 	@Override
-	protected void onStart() {
-		super.onStart();
+	public void doBusiness(Context mContext) {
+		act = this;
+		sp = getSharedPreferences("serviceInfo", MODE_PRIVATE);
+		sp.edit().putString("loginName", "").commit();
+		userDao = Sys_userDao.getInstance(this);
+	}
+
+	@Override
+	public void resume() {
 		etLoginName.setText("");
 		etPassword.setText("");
+		if(loadingDialog != null){
+			loadingDialog.dismiss();
+		}
+	}
+
+	@Override
+	public void destroy() {
+
+	}
+	
+	protected void matchUser(final String loginName, final String password) {
+		
+		boolean avaiLogin = userDao.avaiLogin(loginName, password);
+		if (avaiLogin) {
+			sp.edit().putString("loginName", loginName).commit();
+			startActivity(new Intent(act, MainActivity.class));
+			overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
+		} else {
+			loadingDialog.dismiss();
+			ToastUtils.showToast(act, "’À∫≈ªÚ’ﬂ√‹¬Î¥ÌŒÛ");
+		}
 	}
 
 	private long exitTime = 0;
@@ -118,7 +140,7 @@ public class LoginActivity extends RepairBaseActivity {
 				final SharedPreferencesUtil spUtil = new SharedPreferencesUtil(
 						this, Constants.ADMIN_INFO);
 				spUtil.clearLoginUser();
-				ExitApplication.getInstance().exit();
+				mApplication.removeAll();
 			}
 			return true;
 		}

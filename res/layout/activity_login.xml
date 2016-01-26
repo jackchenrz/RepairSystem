@@ -19,16 +19,7 @@
             android:id="@+id/layoutTop"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:background="@drawable/repairsystem_title" >
-
-            <ImageButton
-                android:id="@+id/btn_Admin_Login"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentLeft="true"
-                android:layout_centerVertical="true"
-                android:layout_marginLeft="5dp"
-                android:background="@drawable/button_admin" />
+            android:background="@color/maintitle" >
 
             <TextView
                 android:layout_width="wrap_content"
@@ -104,14 +95,16 @@
         </LinearLayout>
     </LinearLayout>
 
-    <ImageButton
+    <Button
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"
-        android:background="@drawable/button_login" />
+        android:text="登录"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/long_button" />
 
     <LinearLayout
         android:layout_width="match_parent"

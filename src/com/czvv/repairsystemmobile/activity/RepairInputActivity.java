@@ -8,16 +8,14 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.UUID;
 
-import android.app.ProgressDialog;
+import android.app.Dialog;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.provider.MediaStore;
@@ -29,12 +27,15 @@ import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.PopupWindow.OnDismissListener;
 import android.widget.Toast;
-import android_serialport_api.sample.Application;
 
+import com.czvv.repairsystemmobile.Constants;
+import com.czvv.repairsystemmobile.MApplication;
 import com.czvv.repairsystemmobile.R;
+import com.czvv.repairsystemmobile.base.BaseActivity;
 import com.czvv.repairsystemmobile.bean.EqptInfoBean.EqptInfo;
 import com.czvv.repairsystemmobile.bean.FiveTEqptInfoBean.FiveTEqpt;
 import com.czvv.repairsystemmobile.bean.RepairInfo;
@@ -50,17 +51,18 @@ import com.czvv.repairsystemmobile.service.Repair_submitService;
 import com.czvv.repairsystemmobile.service.Sys_deptService;
 import com.czvv.repairsystemmobile.service.Sys_userService;
 import com.czvv.repairsystemmobile.service.TechService;
-import com.czvv.repairsystemmobile.utils.Constants;
+import com.czvv.repairsystemmobile.utils.AlertUtils;
 import com.czvv.repairsystemmobile.utils.ThreadUtils;
 import com.czvv.repairsystemmobile.view.DatePickerPopWindow;
+import com.lidroid.xutils.BitmapUtils;
 import com.lidroid.xutils.ViewUtils;
 import com.lidroid.xutils.view.annotation.ViewInject;
 
-public class RepairInputActivity extends RepairBaseActivity implements
+public class RepairInputActivity extends BaseActivity implements
 		OnClickListener {
 
 	@ViewInject(R.id.btnBack)
-	Button btnBack;
+	ImageButton btnBack;
 	@ViewInject(R.id.et_devicename)
 	EditText etDevicename;
 	@ViewInject(R.id.btn_devicename)
@@ -81,10 +83,11 @@ public class RepairInputActivity extends RepairBaseActivity implements
 	Button btn_save;
 	@ViewInject(R.id.btn_cancel)
 	Button btn_cancel;
+	@ViewInject(R.id.btn_repairtime)
+	Button btn_repairtime;
 
 	private Uri uri;
 	private String name;
-	private Bitmap bmp;
 
 	private static final int CAMERA = 55;
 	private Repair_submitService repairDao;
@@ -95,63 +98,44 @@ public class RepairInputActivity extends RepairBaseActivity implements
 	private Sys_deptService deptDao;
 	private int flag = 0;
 	private SharedPreferences sp;
-	private ProgressDialog progressDialog;
 	private final int FLUSH = 100;
 	private Handler handler = new Handler(){
 		public void handleMessage(android.os.Message msg) {
 			switch (msg.what) {
 			case FLUSH:
-				progressDialog.dismiss();
-				Intent intent4 = new Intent(RepairInputActivity.this, UploadActivity.class);
+				RepairHandlerActivity.instance.finish();
+				loadingDialog.dismiss();
+				Intent intent4 = new Intent(RepairInputActivity.this,RepairHandlerActivity.class);
 				startActivity(intent4);
+				overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
 				finish();
 				break;
 			}
 		};
 	};
-
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_repair_input);
-		ViewUtils.inject(this);
-		sp = getSharedPreferences("serviceInfo", MODE_PRIVATE);
-		repairDao = Reapir_SubmitDao.getInstance(this);
-		userDao = Sys_userDao.getInstance(this);
-		fivetDao = FiveT_InfoDao.getInstance(this);
-		eqptDao = Eqpt_InfoDao.getInstance(this);
-		techDao = TechEqptDao.getInstance(this);
-		deptDao = Sys_deptDao.getInstance(this);
-
-		btnBack.setOnClickListener(this);
-		btnDevicename.setOnClickListener(this);
-		btnRepairdepartment.setOnClickListener(this);
-		btnPhotograph.setOnClickListener(this);
-		btn_save.setOnClickListener(this);
-		btn_cancel.setOnClickListener(this);
-		etRepairtime.setOnClickListener(this);
-		
-	}
+	private BitmapUtils bitmapUtils;
+	private Dialog loadingDialog;
 
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
 		case R.id.btnBack:
-			startActivity(new Intent(this, RepairHandlerAcrivity.class));
 			finish();
+			overridePendingTransition(0,R.anim.base_slide_right_out);
 			break;
 		case R.id.btn_devicename:
 			Intent intent2 = new Intent(this, SearchActivity.class);
 			flag = 0;
 			intent2.putExtra("flag", flag);
 			startActivityForResult(intent2, Constants.DEVICENAME);
-
+			overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
 			break;
 		case R.id.btn_repairdepartment:
 			Intent intent1 = new Intent(this, SearchActivity.class);
 			flag = 1;
 			intent1.putExtra("flag", flag);
 			startActivityForResult(intent1, Constants.REPAIRDEPARTMENTLIST);
+			overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
 			break;
 		case R.id.btn_photograph:
 			photoGraph();
@@ -165,7 +149,7 @@ public class RepairInputActivity extends RepairBaseActivity implements
 
 			if (uri == null || TextUtils.isEmpty(deviceName)
 					|| TextUtils.isEmpty(repairdepartment)
-					|| TextUtils.isEmpty(breakdown)
+					|| TextUtils.isEmpty(repairtime)
 					|| TextUtils.isEmpty(breakdown)) {
 				Toast.makeText(this, "保存失败，请完善信息", Toast.LENGTH_SHORT).show();
 				return;
@@ -175,16 +159,18 @@ public class RepairInputActivity extends RepairBaseActivity implements
 					imgUri);
 			break;
 		case R.id.btn_cancel:
-			startActivity(new Intent(this, RepairHandlerAcrivity.class));
+			startActivity(new Intent(this, RepairHandlerActivity.class));
 			finish();
+			overridePendingTransition(0,R.anim.base_slide_right_out);
 			break;
-		case R.id.et_repairtime:
+		case R.id.btn_repairtime:
 			Date date=new Date();
 			SimpleDateFormat df=new SimpleDateFormat("yyyyMMddHHmmss");
 			DatePickerPopWindow popWindow=new DatePickerPopWindow(RepairInputActivity.this,df.format(date));
 			WindowManager.LayoutParams lp=getWindow().getAttributes();
-			lp.alpha=0.5f;
+			lp.alpha=0.8f;
 			getWindow().setAttributes(lp);
+			popWindow.setAnimationStyle(R.style.AnimationPreview);
 			popWindow.showAtLocation(etRepairtime, Gravity.CENTER, 0, 0);
 			popWindow.setBackgroundDrawable(new ColorDrawable(Color.WHITE));
 			popWindow.setOutsideTouchable(true);
@@ -195,7 +181,6 @@ public class RepairInputActivity extends RepairBaseActivity implements
 					WindowManager.LayoutParams lp=getWindow().getAttributes();
 					lp.alpha=1f;
 					getWindow().setAttributes(lp);
-					System.out.println(sp.getString(Constants.BIRTHDAY, ""));
 					etRepairtime.setText(sp.getString(Constants.BIRTHDAY, ""));
 				}
 			});
@@ -205,6 +190,9 @@ public class RepairInputActivity extends RepairBaseActivity implements
 		}
 	}
 
+	/**
+	 * 手机拍照
+	 */
 	private void photoGraph() {
 		String status = Environment.getExternalStorageState();
 		if (status.equals(Environment.MEDIA_MOUNTED)) {
@@ -230,10 +218,19 @@ public class RepairInputActivity extends RepairBaseActivity implements
 		}
 	}
 
+	/**
+	 * 保存输入信息
+	 * @param deviceName
+	 * @param repairdepartment
+	 * @param breakdown
+	 * @param repairtime
+	 * @param imgUri
+	 */
 	private void saveRepairInfo(final String deviceName,
 			final String repairdepartment, final String breakdown,
 			final String repairtime, final String imgUri) {
-		showProgressDialog("正在保存，请稍后...");
+		loadingDialog = AlertUtils.createLoadingDialog(RepairInputActivity.this, "正在保存，请稍后...");
+		loadingDialog.show();
 		final RepairInfo repairInfo = new RepairInfo();
 		ThreadUtils.runInBackground(new Runnable() {
 
@@ -241,8 +238,8 @@ public class RepairInputActivity extends RepairBaseActivity implements
 			public void run() {
 
 				repairInfo.RepairID = UUID.randomUUID().toString();
-				repairInfo.RepairType = Application.mRepairType;
-				if (Application.mRepairType.equals("5T")) {
+				repairInfo.RepairType = MApplication.mRepairType;
+				if (MApplication.mRepairType.equals("5T")) {
 					FiveTEqpt fiveTEqpt = fivetDao.getFiveTEqpt(deviceName);
 					repairInfo.EqptID = fiveTEqpt.EqptID;
 					repairInfo.EqptName = fiveTEqpt.EqptAddress;
@@ -250,10 +247,9 @@ public class RepairInputActivity extends RepairBaseActivity implements
 					repairInfo.ProbeStation = fiveTEqpt.ProbeStation;
 					repairInfo.Specification = "";
 					repairInfo.Manufacturer = "";
-				} else if (Application.mRepairType.equals("Tech")) {
+				} else if (MApplication.mRepairType.equals("Tech")) {
 					EqptInfo eqptInfo = eqptDao.getEqptInfo(deviceName);
-					repairInfo.EqptID = techDao
-							.getTechEqptID(eqptInfo.EqptInfoID);
+					repairInfo.EqptID = techDao.getTechEqptID(eqptInfo.EqptInfoID);
 					repairInfo.EqptName = eqptInfo.EqptName;
 					repairInfo.EqptType = "";
 					repairInfo.ProbeStation = "";
@@ -308,11 +304,8 @@ public class RepairInputActivity extends RepairBaseActivity implements
 					uri = Uri.parse(android.provider.MediaStore.Images.Media
 							.insertImage(getContentResolver(),
 									f.getAbsolutePath(), null, null));
-					BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();  
-				      bitmapOptions.inSampleSize = 10; 
-					bmp = BitmapFactory.decodeStream(RepairInputActivity.this
-							.getContentResolver().openInputStream(uri),null , bitmapOptions);
-					ivSelimg.setImageBitmap(bmp);
+					System.out.println(Environment.getExternalStorageDirectory() + "/.problems/" + name);
+					bitmapUtils.display(ivSelimg,Environment.getExternalStorageDirectory() + "/.problems/" + name);
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 				}
@@ -324,19 +317,46 @@ public class RepairInputActivity extends RepairBaseActivity implements
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		if (null != bmp && !bmp.isRecycled()) {
-			bmp.recycle();
-			bmp = null;
-		}
 	}
 	
-	private void showProgressDialog(String msg) {
-		if (null == progressDialog) {
-			progressDialog = new ProgressDialog(this);
-		}
-		progressDialog.setMessage(msg);
-		progressDialog.setCanceledOnTouchOutside(false);
-		progressDialog.show();
+
+	@Override
+	public int bindLayout() {
+		return R.layout.activity_repair_input;
+	}
+
+	@Override
+	public void initView(View view) {
+		ViewUtils.inject(this);	
+		btnBack.setOnClickListener(this);
+		btnDevicename.setOnClickListener(this);
+		btnRepairdepartment.setOnClickListener(this);
+		btnPhotograph.setOnClickListener(this);
+		btn_save.setOnClickListener(this);
+		btn_cancel.setOnClickListener(this);
+		btn_repairtime.setOnClickListener(this);
+	}
+
+	@Override
+	public void doBusiness(Context mContext) {
+		bitmapUtils = new BitmapUtils(mContext);
+		sp = getSharedPreferences("serviceInfo", MODE_PRIVATE);
+		repairDao = Reapir_SubmitDao.getInstance(this);
+		userDao = Sys_userDao.getInstance(this);
+		fivetDao = FiveT_InfoDao.getInstance(this);
+		eqptDao = Eqpt_InfoDao.getInstance(this);
+		techDao = TechEqptDao.getInstance(this);
+		deptDao = Sys_deptDao.getInstance(this);		
+	}
+
+	@Override
+	public void resume() {
+		
+	}
+
+	@Override
+	public void destroy() {
+		
 	}
 
 }

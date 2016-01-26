@@ -27,4 +27,11 @@ public class RepairInfo implements Serializable{
 	public String ImageUrl;
 	public int IsUpload;
 	public String RepairDeptID;
+	
+	@Override
+	public String toString() {
+		return RepairID + RepairType + EqptID +EqptName +EqptType +ProbeStation +FaultStatus +Specification +
+				Manufacturer + UserID + UserDeptID + FaultOccu_Time + FaultReceiveTime + FaultAppearance +
+				CreateDate + LastUpdateDate + StopTime + StopHours + StopMinutes + ImageUrl + IsUpload + RepairDeptID;
+	}
 }

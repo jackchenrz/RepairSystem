@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="white">#000000</color>
-    <color name="skyblue">#0867F0</color>
+     <color name="white">#FFFFFFFF</color>
+    <color name="darkwhite">#AAFFFFFF</color>
+    <color name="darkblack">#AA000000</color>
+    <color name="darkbg">#EAEAEA</color>
+    
+    <color name="item_bg">#D3D3D3</color>
+    <color name="grid_item_bg">#0056A0</color>
+    <color name="bottomcolor">#00A4FF</color>
+    
+    <color name="title">#0BACD3</color>
+    <color name="maintitle">#4EBAFF</color>
 </resources>

@@ -3,10 +3,9 @@ package com.czvv.repairsystemmobile.activity;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -15,29 +14,31 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
-import android_serialport_api.sample.Application;
 
+import com.czvv.repairsystemmobile.Constants;
+import com.czvv.repairsystemmobile.MApplication;
 import com.czvv.repairsystemmobile.R;
 import com.czvv.repairsystemmobile.adapter.CommonAdapter;
+import com.czvv.repairsystemmobile.base.BaseActivity;
 import com.czvv.repairsystemmobile.bean.DeptInfoBean.DeptInfo;
 import com.czvv.repairsystemmobile.bean.EqptInfoBean.EqptInfo;
 import com.czvv.repairsystemmobile.bean.FiveTEqptInfoBean.FiveTEqpt;
 import com.czvv.repairsystemmobile.dao.Eqpt_InfoDao;
 import com.czvv.repairsystemmobile.dao.FiveT_InfoDao;
 import com.czvv.repairsystemmobile.dao.Sys_deptDao;
-import com.czvv.repairsystemmobile.utils.Constants;
 import com.czvv.repairsystemmobile.utils.ThreadUtils;
 import com.lidroid.xutils.ViewUtils;
 import com.lidroid.xutils.view.annotation.ViewInject;
 
-public class SearchActivity extends RepairBaseActivity {
+public class SearchActivity extends BaseActivity {
 
 	@ViewInject(R.id.tv_search)
 	TextView tvSearch;
 	@ViewInject(R.id.btnBack)
-	Button btnBack;
+	ImageButton btnBack;
 	@ViewInject(R.id.et_search)
 	AutoCompleteTextView etSearch;
 	@ViewInject(R.id.lv_search)
@@ -134,20 +135,6 @@ public class SearchActivity extends RepairBaseActivity {
 		};
 	};
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_serach);
-		ViewUtils.inject(this);
-		eqptDao = Eqpt_InfoDao.getInstance(this);
-		fiveTDao = FiveT_InfoDao.getInstance(this);
-		deptDao = Sys_deptDao.getInstance(this);
-
-		Intent intent = getIntent();
-		final int flag = intent.getIntExtra("flag", 0);
-		init(flag);
-
-	}
 
 	private void init(final int flag) {
 		btnBack.setOnClickListener(new OnClickListener() {
@@ -164,25 +151,28 @@ public class SearchActivity extends RepairBaseActivity {
 			public void onClick(View v) {
 
 				String searchContent = etSearch.getText().toString().trim();
-				if (flag == 0 && Application.mRepairType.equals("Tech")) {
+				if (flag == 0 && MApplication.mRepairType.equals("Tech")) {
 					Intent intent1 = new Intent(SearchActivity.this,
 							RepairInputActivity.class);
 					intent1.putExtra("devicename", searchContent);
 					setResult(Constants.DEVICENAME, intent1);
 					finish();
+					overridePendingTransition(0, R.anim.base_slide_right_out);
 
-				} else if (flag == 0 && Application.mRepairType.equals("5T")) {
+				} else if (flag == 0 && MApplication.mRepairType.equals("5T")) {
 					Intent intent1 = new Intent(SearchActivity.this,
 							RepairInputActivity.class);
 					intent1.putExtra("devicename", searchContent);
 					setResult(Constants.DEVICENAME, intent1);
 					finish();
+					overridePendingTransition(0, R.anim.base_slide_right_out);
 				} else if (flag == 1) {
 					Intent intent1 = new Intent(SearchActivity.this,
 							RepairInputActivity.class);
 					intent1.putExtra("repairdepartment", searchContent);
 					setResult(Constants.REPAIRDEPARTMENTLIST, intent1);
 					finish();
+					overridePendingTransition(0, R.anim.base_slide_right_out);
 				}
 			}
 		});
@@ -207,9 +197,9 @@ public class SearchActivity extends RepairBaseActivity {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view,
 					int position, long id) {
-				if (flag == 0 && Application.mRepairType.equals("Tech")) {
+				if (flag == 0 && MApplication.mRepairType.equals("Tech")) {
 					etSearch.setText(allEqptInfoList.get(position).EqptName);
-				} else if (flag == 0 && Application.mRepairType.equals("5T")) {
+				} else if (flag == 0 && MApplication.mRepairType.equals("5T")) {
 					etSearch.setText(allFiveTEqptList.get(position).EqptAddress);
 				} else if (flag == 1) {
 					etSearch.setText(allDeptList.get(position).dept_name);
@@ -243,13 +233,13 @@ public class SearchActivity extends RepairBaseActivity {
 
 				allFiveTEqptList = fiveTDao.getAllFiveTEqptList();
 
-				if (Application.mRepairType.equals("Tech")) {
+				if (MApplication.mRepairType.equals("Tech")) {
 					list.clear();
 					for (EqptInfo eqptInfo : allEqptInfoList) {
 						list.add(eqptInfo.EqptName);
 					}
 					handler.sendEmptyMessage(FILL_TECH);
-				} else if (Application.mRepairType.equals("5T")) {
+				} else if (MApplication.mRepairType.equals("5T")) {
 					list.clear();
 					for (FiveTEqpt fiveTEqpt : allFiveTEqptList) {
 						list.add(fiveTEqpt.EqptAddress);
@@ -259,5 +249,36 @@ public class SearchActivity extends RepairBaseActivity {
 			}
 		});
 
+	}
+
+	@Override
+	public int bindLayout() {
+		return R.layout.activity_serach;
+	}
+
+	@Override
+	public void initView(View view) {
+		ViewUtils.inject(this);		
+	}
+
+	@Override
+	public void doBusiness(Context mContext) {
+		eqptDao = Eqpt_InfoDao.getInstance(this);
+		fiveTDao = FiveT_InfoDao.getInstance(this);
+		deptDao = Sys_deptDao.getInstance(this);
+
+		Intent intent = getIntent();
+		final int flag = intent.getIntExtra("flag", 0);
+		init(flag);		
+	}
+
+	@Override
+	public void resume() {
+		
+	}
+
+	@Override
+	public void destroy() {
+		
 	}
 }

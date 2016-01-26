@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 
+import com.czvv.repairsystemmobile.Constants;
 import com.czvv.repairsystemmobile.bean.AdminInfo;
 
 public class SharedPreferencesUtil {

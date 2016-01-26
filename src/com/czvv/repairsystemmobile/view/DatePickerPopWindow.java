@@ -10,8 +10,8 @@ import android.view.View;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupWindow;
 
+import com.czvv.repairsystemmobile.Constants;
 import com.czvv.repairsystemmobile.R;
-import com.czvv.repairsystemmobile.utils.Constants;
 import com.czvv.repairsystemmobile.utils.SharedPreferencesUtil;
 import com.czvv.repairsystemmobile.view.wheelview.OnWheelScrollListener;
 import com.czvv.repairsystemmobile.view.wheelview.WheelView;
@@ -36,6 +36,10 @@ public class DatePickerPopWindow extends PopupWindow{
 		this.context=context;
 		this.startTime=startTime;
 		spUtil = new SharedPreferencesUtil(context, "serviceInfo");
+		spUtil.saveStr(startTime.substring(0, 4) + "/" + startTime.substring(4, 6)
+				+ "/" + startTime.substring(6, 8) + " " + startTime.substring(8, 10)
+				+ ":" + startTime.substring(10, 12));
+		System.out.println(startTime);
 		setStartTime();
 		initWindow();
 	}

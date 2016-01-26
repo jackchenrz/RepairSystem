@@ -2,21 +2,27 @@ package com.czvv.repairsystemmobile.activity;
 
 import java.util.List;
 
+import org.ksoap2.serialization.SoapObject;
+
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.ProgressDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.UriMatcher;
-import android.os.Bundle;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Message;
-import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
+import com.czvv.repairsystemmobile.Constants;
 import com.czvv.repairsystemmobile.R;
+import com.czvv.repairsystemmobile.base.BaseActivity;
 import com.czvv.repairsystemmobile.bean.DeptInfoBean;
 import com.czvv.repairsystemmobile.bean.DeptInfoBean.DeptInfo;
 import com.czvv.repairsystemmobile.bean.EqptInfoBean;
@@ -37,22 +43,21 @@ import com.czvv.repairsystemmobile.service.FiveTService;
 import com.czvv.repairsystemmobile.service.Sys_deptService;
 import com.czvv.repairsystemmobile.service.Sys_userService;
 import com.czvv.repairsystemmobile.service.TechService;
-import com.czvv.repairsystemmobile.utils.Constants;
+import com.czvv.repairsystemmobile.utils.AlertUtils;
 import com.czvv.repairsystemmobile.utils.GsonUtils;
-import com.czvv.repairsystemmobile.utils.HttpUtil;
-import com.czvv.repairsystemmobile.utils.SharedPreferencesUtil;
+import com.czvv.repairsystemmobile.utils.HttpUtils;
+import com.czvv.repairsystemmobile.utils.HttpUtils.WebServiceCallBack;
 import com.czvv.repairsystemmobile.utils.ThreadUtils;
 import com.czvv.repairsystemmobile.utils.ToastUtils;
+import com.czvv.repairsystemmobile.view.MyProgressBar;
 import com.lidroid.xutils.ViewUtils;
 import com.lidroid.xutils.view.annotation.ViewInject;
 
-public class AdminActivity extends RepairBaseActivity implements
+public class AdminActivity extends BaseActivity implements
 		OnClickListener {
 
-	@ViewInject(R.id.btnAdminLogout)
-	ImageButton btnAdminLogout;
 	@ViewInject(R.id.btnAdminSetting)
-	Button btnAdminSetting;
+	ImageButton btnAdminSetting;
 	@ViewInject(R.id.btnUpdateUser)
 	Button btnUpdateUser;
 	@ViewInject(R.id.btnUpdateDevices)
@@ -62,13 +67,13 @@ public class AdminActivity extends RepairBaseActivity implements
 	@ViewInject(R.id.btnNone)
 	Button btnNone;
 
-	private static final int UPDATEUSER = 100;//同步人员
-	private static final int UPDATEDEVICES = 101;//徒步设备
-	private static final int UPDATEDEPARTMENT = 102;//同步维修部门
+	private static final int PRO_USER = 101;//同步维修部门
+	private static final int PRO_DEVICES = 102;//同步维修部门
+	private static final int PRO_DEPARTMENT= 103;//同步维修部门
 	
-	private ProgressDialog progressDialog;
 	private String url;
 	private Activity act;
+	private SharedPreferences sp;
 	
 	private Sys_userService userDao;
 	private Sys_deptService deptDao;
@@ -76,64 +81,55 @@ public class AdminActivity extends RepairBaseActivity implements
 	private FiveTService fiveTDao;
 	private TechService TechDao;
 
-	private Handler handler = new Handler() {
+	private Handler handler = new Handler(){
 		public void handleMessage(Message msg) {
-			final String msgObj = (String) msg.obj;
 			switch (msg.what) {
-			case UPDATEUSER:
-				if (!TextUtils.isEmpty(msgObj)) {
-					ThreadUtils.runInBackground(new Runnable() {
-
-						@Override
-						public void run() {
-							saveUserInfo(msgObj);
-						}
-					});
-				} else {
-					showAlertDialog("数据下载失败，请重试！");
-				}
+			case PRO_USER:
+				tipTextView.setText("正在更新");
+				pro.setProgress(addCount*100/userInfoList.size());
+				tvPro.setText(addCount + "/" + userInfoList.size());
 				break;
-			case UPDATEDEPARTMENT:
-				if (!TextUtils.isEmpty(msgObj)) {
-					ThreadUtils.runInBackground(new Runnable() {
-
-						@Override
-						public void run() {
-							saveDeptInfo(msgObj);
-						}
-					});
-				} else {
-					showAlertDialog("数据下载失败，请重试！");
-				}
+			case PRO_DEPARTMENT:
+				tipTextView.setText("正在更新");
+				pro.setProgress(addCount*100/deptInfoList.size());
+				tvPro.setText(addCount + "/" + deptInfoList.size());
 				break;
-			case UPDATEDEVICES:
-				if (!TextUtils.isEmpty(msgObj)) {
-					ThreadUtils.runInBackground(new Runnable() {
-
-						@Override
-						public void run() {
-							saveEqptInfo(msgObj);
-						}
-					});
-
-				} else {
-					showAlertDialog("数据下载失败，请重试！");
-				}
+			case PRO_DEVICES:
+				tipTextView.setText("正在更新");
+				pro.setProgress(addCount*100/(fiveTEqptList.size() + eqptInfoList.size()+ techEqptList.size()));
+				tvPro.setText(addCount + "/" + (fiveTEqptList.size() + eqptInfoList.size()+ techEqptList.size()));
 				break;
 			}
 		};
 	};
+	private MyProgressBar pro;
+	private TextView tvPro;
+	private Dialog downloadDialog;
+	private int i;
+	private int addCount;
+	private List<UserInfo> userInfoList;
+	private TextView tipTextView;
+	private List<DeptInfo> deptInfoList;
+	private List<FiveTEqpt> fiveTEqptList;
+	private List<EqptInfo> eqptInfoList;
+	private List<TechEqpt> techEqptList;
+	@Override
+	public int bindLayout() {
+		return R.layout.activity_admin;
+	}
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_admin);
-		ViewUtils.inject(this);
-		act = this;
+	public void initView(View view) {
+		ViewUtils.inject(this);		
+	}
 
-		Intent intent = getIntent();
-		String serverIP = intent.getStringExtra("serverIP");
-		String serverPort = intent.getStringExtra("serverPort");
+	@Override
+	public void doBusiness(Context mContext) {
+		act = this;
+		sp = getSharedPreferences("serviceInfo", MODE_PRIVATE);	
+		String serverIP = sp.getString("serverIP","");
+		String serverPort = sp.getString("serverPort","");
+		System.out.println(serverIP + serverPort);
 		if (serverIP != null && !"".equals(serverIP) && serverPort != null&& !"".equals(serverPort)) {
 			url = "http://" + serverIP + ":" + serverPort+ Constants.SERVICE_PAGE;
 		}
@@ -143,28 +139,30 @@ public class AdminActivity extends RepairBaseActivity implements
 		fiveTDao = FiveT_InfoDao.getInstance(act);
 		TechDao = TechEqptDao.getInstance(act);
 
-		btnAdminLogout.setOnClickListener(this);
 		btnAdminSetting.setOnClickListener(this);
 		btnUpdateUser.setOnClickListener(this);
 		btnUpdateDevices.setOnClickListener(this);
 		btnUpdateDepartment.setOnClickListener(this);
-		btnNone.setOnClickListener(this);
+		btnNone.setOnClickListener(this);		
+	}
 
+	@Override
+	public void resume() {
+		
+	}
+
+	@Override
+	public void destroy() {
+		
 	}
 
 	@Override
 	public void onClick(View v) {
 		switch (v.getId()) {
-		case R.id.btnAdminLogout:
-			SharedPreferencesUtil spUtil = new SharedPreferencesUtil(this,Constants.ADMIN_INFO);
-			spUtil.clearLoginUser();
-			startActivity(new Intent(AdminActivity.this, LoginActivity.class));
-			AdminActivity.this.finish();
-			break;
 
 		case R.id.btnAdminSetting:
 			startActivity(new Intent(AdminActivity.this, SettingActivity.class));
-			AdminActivity.this.finish();
+			overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
 			break;
 		case R.id.btnUpdateUser:
 			updateUser();
@@ -176,123 +174,152 @@ public class AdminActivity extends RepairBaseActivity implements
 			updateDepartment();
 			break;
 		case R.id.btnNone:
-
 			break;
 		}
 	}
 
+	/**
+	 * 更新维修部门
+	 */
 	private void updateDepartment() {
-		showProgressDialog("正在同步数据，请稍后...");
-		ThreadUtils.runInBackground(new Runnable() {
+		downloadDialog = showDownloadDialog(this, "正在准备更新...", "0/0", i);
+		downloadDialog.show();
+		if (url == null) {
+			downloadDialog.dismiss();
+			ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
+			startActivity(new Intent(AdminActivity.this,SettingActivity.class));
+			overridePendingTransition(R.anim.base_slide_right_in, R.anim.base_slide_remain);
+			return;
+		}
+		
+		HttpUtils.callService(url, Constants.SERVICE_NAMESPACE, Constants.SERVICE_GETSYS_DEPT, null, new WebServiceCallBack() {
+			
 			@Override
-			public void run() {
-				Message msg = Message.obtain();
-				if (url == null) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					return;
+			public void onSucced(SoapObject result) {
+				if (result != null) {
+					final String string = result.getProperty(0).toString();
+						ThreadUtils.runInBackground(new Runnable() {
+
+							@Override
+							public void run() {
+								saveDeptInfo(string);
+							}
+						});
+				} else {
+					ToastUtils.showToast(AdminActivity.this, "联网失败");
+					downloadDialog.dismiss();
 				}
-				String deptJsonArray = null;
-				try {
-					deptJsonArray = HttpUtil.getJsonArray(url,Constants.SERVICE_GETSYS_DEPT);
-				} catch (Exception e) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					finish();
-					e.printStackTrace();
-				}
-				if (deptJsonArray == null) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					finish();
-					return;
-				}
-				msg.what = UPDATEDEPARTMENT;
-				msg.obj = deptJsonArray;
-				handler.sendMessage(msg);
+			}
+			@Override
+			public void onFailure(String result) {
+				ToastUtils.showToast(AdminActivity.this, "联网失败");
+				downloadDialog.dismiss();
 			}
 		});
 	}
 
+	/**
+	 * 更新设备信息
+	 */
 	private void updateDevices() {
-		showProgressDialog("正在同步数据，请稍后...");
-		ThreadUtils.runInBackground(new Runnable() {
+		downloadDialog = showDownloadDialog(this, "正在准备更新...", "0/0", i);
+		downloadDialog.show();
+		
+		HttpUtils.callService(url, Constants.SERVICE_NAMESPACE, Constants.SERVICE_GETFIVET_EQPT, null, new WebServiceCallBack() {
+			
 			@Override
-			public void run() {
-				Message msg = Message.obtain();
-				if (url == null) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					return;
+			public void onSucced(SoapObject result) {
+				if (result != null) {
+					String string = result.getProperty(0).toString();
+					getEqpt(string + "&");
+				} else {
+					ToastUtils.showToast(AdminActivity.this, "联网失败");
+					downloadDialog.dismiss();
 				}
-				String fivetEqptJsonArray = null;
-				String eqptJsonArray = null;
-				String techJsonArray = null;
-				try {
-					fivetEqptJsonArray = HttpUtil.getJsonArray(url,Constants.SERVICE_GETFIVET_EQPT);
-					eqptJsonArray = HttpUtil.getJsonArray(url,Constants.SERVICE_GETEQPT_INFO);
-					techJsonArray = HttpUtil.getJsonArray(url,Constants.SERVICE_GETTECH_EQPT);
-				} catch (Exception e) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					finish();
-					e.printStackTrace();
+			}
+			@Override
+			public void onFailure(String result) {
+				ToastUtils.showToast(AdminActivity.this, "联网失败");
+				downloadDialog.dismiss();
+			}
+		});
+	}
+	private void getEqpt(final String str) {
+		HttpUtils.callService(url, Constants.SERVICE_NAMESPACE,Constants.SERVICE_GETEQPT_INFO, null, new WebServiceCallBack() {
+			
+			@Override
+			public void onSucced(SoapObject result) {
+				if (result != null) {
+					String string = result.getProperty(0).toString();
+					getTech(str + string + "&");
+				} else {
+					ToastUtils.showToast(AdminActivity.this, "联网失败");
+					downloadDialog.dismiss();
 				}
-				String jsonArray = fivetEqptJsonArray + "&" + eqptJsonArray+ "&" + techJsonArray;
-				if (fivetEqptJsonArray == null || eqptJsonArray == null|| techJsonArray == null) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					finish();
-					return;
-				}
-				msg.what = UPDATEDEVICES;
-				msg.obj = jsonArray;
-				handler.sendMessage(msg);
+			}
+			@Override
+			public void onFailure(String result) {
+				ToastUtils.showToast(AdminActivity.this, "联网失败");
+				downloadDialog.dismiss();
 			}
 		});
 	}
 
-	private void updateUser() {
-		showProgressDialog("正在同步数据，请稍后...");
-
-		ThreadUtils.runInBackground(new Runnable() {
+	protected void getTech(final String str) {
+		HttpUtils.callService(url, Constants.SERVICE_NAMESPACE,Constants.SERVICE_GETTECH_EQPT, null, new WebServiceCallBack() {
+			
 			@Override
-			public void run() {
-				Message msg = Message.obtain();
-				if (url == null) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					return;
-				}
+			public void onSucced(SoapObject result) {
+				if (result != null) {
+					final String string = result.getProperty(0).toString();
+					ThreadUtils.runInBackground(new Runnable() {
 
-				String userJsonArray = null;
-				try {
-					userJsonArray = HttpUtil.getJsonArray(url,Constants.SERVICE_GETSYSUSER);
-				} catch (Exception e) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					finish();
-					e.printStackTrace();
+						@Override
+						public void run() {
+							saveEqptInfo(str + string);
+						}
+					});
+				} else {
+					ToastUtils.showToast(AdminActivity.this, "联网失败");
+					downloadDialog.dismiss();
 				}
+			}
+			@Override
+			public void onFailure(String result) {
+				ToastUtils.showToast(AdminActivity.this, "联网失败");
+				downloadDialog.dismiss();
+			}
+		});
+	}
 
-				if (userJsonArray == null) {
-					progressDialog.dismiss();
-					ToastUtils.showToast(AdminActivity.this,"服务器IP与端口错误,请设置连接");
-					startActivity(new Intent(AdminActivity.this,SettingActivity.class));
-					finish();
-					return;
+	/**
+	 * 更新用户信息
+	 */
+	private void updateUser() {
+		downloadDialog = showDownloadDialog(this, "正在准备更新...", "0/0", i);
+		downloadDialog.show();
+		HttpUtils.callService(url, Constants.SERVICE_NAMESPACE,Constants.SERVICE_GETSYSUSER, null, new WebServiceCallBack() {
+			
+			@Override
+			public void onSucced(SoapObject result) {
+				if (result != null) {
+					final String string = result.getProperty(0).toString();
+					ThreadUtils.runInBackground(new Runnable() {
+
+						@Override
+						public void run() {
+							saveUserInfo(string);
+						}
+					});
+				} else {
+					ToastUtils.showToast(AdminActivity.this, "联网失败");
+					downloadDialog.dismiss();
 				}
-				msg.what = UPDATEUSER;
-				msg.obj = userJsonArray;
-				handler.sendMessage(msg);
+			}
+			@Override
+			public void onFailure(String result) {
+				ToastUtils.showToast(AdminActivity.this, "联网失败");
+				downloadDialog.dismiss();
 			}
 		});
 	}
@@ -304,50 +331,43 @@ public class AdminActivity extends RepairBaseActivity implements
 	 */
 	protected void saveEqptInfo(String msgObj) {
 		String[] jsonArr = msgObj.split("&");
-		int addCount = 0;
+		addCount = 0;
 		fiveTDao.deleteAllFiveTEqpt();
 		FiveTEqptInfoBean fiveTEqptInfoBean = GsonUtils.getJsonBean(jsonArr[0],FiveTEqptInfoBean.class);
-		List<FiveTEqpt> fiveTEqptList = fiveTEqptInfoBean.ds;
-		ThreadUtils.runInMainThread(new Runnable() {
-			@Override
-			public void run() {
-				progressDialog.setMessage("正在同步行安设备，请稍后...");
-			}
-		});
+		fiveTEqptList = fiveTEqptInfoBean.ds;
+		TechDao.deleteAllTechEqpt();
+		TechEqptBean techEqptBean = GsonUtils.getJsonBean(jsonArr[2],TechEqptBean.class);
+		techEqptList = techEqptBean.ds;
+		eqptDao.deleteAllEqptInfo();
+		EqptInfoBean eqptInfoBean = GsonUtils.getJsonBean(jsonArr[1],EqptInfoBean.class);
+		eqptInfoList = eqptInfoBean.ds;
 		for (FiveTEqpt fiveTEqpt : fiveTEqptList) {
 			fiveTDao.addFiveTEqpt(fiveTEqpt);
 			addCount++;
+			handler.sendEmptyMessage(PRO_DEVICES);
 		}
 
-		ThreadUtils.runInMainThread(new Runnable() {
-			@Override
-			public void run() {
-				progressDialog.setMessage("正在同步机械设备，请稍后...");
-			}
-		});
-
-		eqptDao.deleteAllEqptInfo();
-		EqptInfoBean eqptInfoBean = GsonUtils.getJsonBean(jsonArr[1],EqptInfoBean.class);
-		List<EqptInfo> eqptInfoList = eqptInfoBean.ds;
 		for (EqptInfo eqptInfo : eqptInfoList) {
 			eqptDao.addEqptInfo(eqptInfo);
 			addCount++;
+			handler.sendEmptyMessage(PRO_DEVICES);
 		}
-
-		TechDao.deleteAllTechEqpt();
-		TechEqptBean techEqptBean = GsonUtils.getJsonBean(jsonArr[2],TechEqptBean.class);
-		List<TechEqpt> techEqptList = techEqptBean.ds;
+		
 		for (TechEqpt techEqpt : techEqptList) {
 			TechDao.addTechEqpt(techEqpt);
 			addCount++;
+			handler.sendEmptyMessage(PRO_DEVICES);
 		}
-
 		if (addCount == fiveTEqptList.size() + eqptInfoList.size()+ techEqptList.size()) {
-			progressDialog.dismiss();
+			downloadDialog.dismiss();
 			ThreadUtils.runInMainThread(new Runnable() {
 				@Override
 				public void run() {
-					showAlertDialog("设备同步成功！");
+					AlertUtils.dialog(act, "提示", "设备同步成功！", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
 				}
 			});
 
@@ -355,7 +375,11 @@ public class AdminActivity extends RepairBaseActivity implements
 			ThreadUtils.runInMainThread(new Runnable() {
 				@Override
 				public void run() {
-					showAlertDialog("同步全部设备失败，请重新同步...");
+					AlertUtils.dialog(act, "提示", "同步全部设备失败，请重新同步...", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
 				}
 			});
 		}
@@ -368,19 +392,25 @@ public class AdminActivity extends RepairBaseActivity implements
 	 */
 	protected void saveDeptInfo(String msgObj) {
 		deptDao.deleteAllDept();
-		int addCount = 0;
+		addCount = 0;
 		DeptInfoBean deptInfoBean = GsonUtils.getJsonBean(msgObj,DeptInfoBean.class);
-		List<DeptInfo> deptInfoList = deptInfoBean.ds;
+		deptInfoList = deptInfoBean.ds;
 		for (DeptInfo deptInfo : deptInfoList) {
 			deptDao.addDept(deptInfo);
 			addCount++;
+			handler.sendEmptyMessage(PRO_DEPARTMENT);
 		}
 		if (addCount == deptInfoList.size()) {
-			progressDialog.dismiss();
+			downloadDialog.dismiss();
 			ThreadUtils.runInMainThread(new Runnable() {
 				@Override
 				public void run() {
-					showAlertDialog("维修部门同步成功！");
+					AlertUtils.dialog(act, "提示", "维修部门同步成功！", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
 				}
 			});
 
@@ -388,7 +418,11 @@ public class AdminActivity extends RepairBaseActivity implements
 			ThreadUtils.runInMainThread(new Runnable() {
 				@Override
 				public void run() {
-					showAlertDialog("同步全部维修部门失败，请重新同步...");
+					AlertUtils.dialog(act, "提示", "同步全部维修部门失败，请重新同步...", new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
 				}
 			});
 		}
@@ -401,47 +435,60 @@ public class AdminActivity extends RepairBaseActivity implements
 	 */
 	protected void saveUserInfo(String msgObj) {
 		userDao.deleteAllUserLog();
-		int addCount = 0;
+		addCount = 0;
 		UserInfoBean userInfoBean = GsonUtils.getJsonBean(msgObj,UserInfoBean.class);
-		List<UserInfo> userInfoList = userInfoBean.ds;
+		userInfoList = userInfoBean.ds;
 		for (UserInfo userInfo : userInfoList) {
 			userDao.addUserLog(userInfo);
 			addCount++;
+			handler.sendEmptyMessage(PRO_USER);
 		}
 		if (addCount == userInfoList.size()) {
-			progressDialog.dismiss();
+			downloadDialog.dismiss();
 			ThreadUtils.runInMainThread(new Runnable() {
 				@Override
 				public void run() {
-					showAlertDialog("人员同步成功！");
+					AlertUtils.dialog(act, "提示", "人员同步成功！", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
 				}
 			});
 		} else {
 			ThreadUtils.runInMainThread(new Runnable() {
 				@Override
 				public void run() {
-					showAlertDialog("同步全部人员失败，请重新同步...");
+					AlertUtils.dialog(act, "提示", "同步全部人员失败，请重新同步...", new DialogInterface.OnClickListener() {
+						
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+						}
+					});
 				}
 			});
 		}
 	}
 
-	private void showAlertDialog(String msg) {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		builder.setTitle("提示");
-		builder.setMessage(msg);
-		builder.setPositiveButton("确定", null);
-		AlertDialog alertDialog = builder.create();
-		alertDialog.show();
-	}
-
-	private void showProgressDialog(String msg) {
-		if (null == progressDialog) {
-			progressDialog = new ProgressDialog(this);
-		}
-		progressDialog.setMessage(msg);
-		progressDialog.setCanceledOnTouchOutside(false);
-		progressDialog.show();
-	}
-
+	private Dialog showDownloadDialog(Context context, String msg, String text, int progress) {  
+		  
+        LayoutInflater inflater = LayoutInflater.from(context);  
+        View v = inflater.inflate(R.layout.download_dialog, null);// 得到加载view  
+        LinearLayout layout = (LinearLayout) v.findViewById(R.id.dialog_view);// 加载布局  
+        pro = (MyProgressBar) v.findViewById(R.id.pro);  
+        tvPro = (TextView) v.findViewById(R.id.tv_pro);  
+        tipTextView = (TextView) v.findViewById(R.id.tipTextView);
+        tipTextView.setText(msg);// 设置加载信息  
+        tvPro.setText(text);//设置下载进度提示
+        pro.setProgress(progress);
+        pro.setMax(100);
+        Dialog downloadDialog = new Dialog(context, R.style.loading_dialog);// 创建自定义样式dialog  
+  
+        downloadDialog.setCancelable(false);// 不可以用“返回键”取消  
+        downloadDialog.setContentView(layout, new LinearLayout.LayoutParams(  
+                LinearLayout.LayoutParams.MATCH_PARENT,  
+                LinearLayout.LayoutParams.MATCH_PARENT));// 设置布局  
+        return downloadDialog;  
+    }  
 }

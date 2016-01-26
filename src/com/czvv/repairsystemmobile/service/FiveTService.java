@@ -9,4 +9,5 @@ public interface FiveTService {
 	public List<FiveTEqpt> getAllFiveTEqptList();
 	boolean addFiveTEqpt(FiveTEqpt fiveTEqpt);
 	public FiveTEqpt getFiveTEqpt(String eqptName);
+	FiveTEqpt getFiveTEqpt1(String eqptID);
 }

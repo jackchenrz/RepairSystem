@@ -192,5 +192,57 @@ public class FiveT_InfoDao implements FiveTService {
 		}
 		return fiveTEqpt;
 	}
+	
+	@Override
+	public FiveTEqpt getFiveTEqpt1(String eqptID) {
+		FiveTEqptInfoBean bean = new FiveTEqptInfoBean();
+		FiveTEqpt fiveTEqpt = null;
+		SQLiteDatabase database = null;
+		try {
+			database = helper.getReadableDatabase();
+			Cursor cursor = database.query(TABLE_NAME, null, "EqptID = ?",
+					new String[] { eqptID }, null, null, null);
+			if (cursor.moveToNext()) {
+				fiveTEqpt = bean.new FiveTEqpt();
+				fiveTEqpt.EqptID = cursor.getString(cursor
+						.getColumnIndex("EqptID"));
+				fiveTEqpt.EqptType = cursor.getString(cursor
+						.getColumnIndex("EqptType"));
+				fiveTEqpt.ProbeStation = cursor.getString(cursor
+						.getColumnIndex("ProbeStation"));
+				fiveTEqpt.dept_id = cursor.getString(cursor
+						.getColumnIndex("dept_id"));
+				fiveTEqpt.EqptAddress = cursor.getString(cursor
+						.getColumnIndex("EqptAddress"));
+				fiveTEqpt.EqptUse = cursor.getString(cursor
+						.getColumnIndex("EqptUse"));
+				fiveTEqpt.EqptOwner = cursor.getString(cursor
+						.getColumnIndex("EqptOwner"));
+				fiveTEqpt.EqptStatus = cursor.getString(cursor
+						.getColumnIndex("EqptStatus"));
+				fiveTEqpt.InDate = cursor.getString(cursor
+						.getColumnIndex("InDate"));
+				fiveTEqpt.CreateDate = cursor.getString(cursor
+						.getColumnIndex("CreateDate"));
+				fiveTEqpt.LastUpdateDate = cursor.getString(cursor
+						.getColumnIndex("LastUpdateDate"));
+				fiveTEqpt.WorkAreaID = cursor.getString(cursor
+						.getColumnIndex("WorkAreaID"));
+				fiveTEqpt.EqptModel = cursor.getString(cursor
+						.getColumnIndex("EqptModel"));
+				fiveTEqpt.Manufacturer = cursor.getString(cursor
+						.getColumnIndex("Manufacturer"));
+				fiveTEqpt.RepairDeptID = cursor.getString(cursor
+						.getColumnIndex("RepairDeptID"));
+			}
+		} catch (Exception e) {
+			System.out.println("----getAllFiveTEqptList-->" + e.getMessage());
+		} finally {
+			if (database != null) {
+				database.close();
+			}
+		}
+		return fiveTEqpt;
+	}
 
 }

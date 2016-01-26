@@ -1,9 +1,7 @@
 package com.czvv.repairsystemmobile.dao;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -12,14 +10,8 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.czvv.repairsystemmobile.bean.TechEqptBean;
 import com.czvv.repairsystemmobile.bean.TechEqptBean.TechEqpt;
-import com.czvv.repairsystemmobile.bean.UserInfoBean;
-import com.czvv.repairsystemmobile.bean.TechEqptBean.TechEqpt;
-import com.czvv.repairsystemmobile.bean.UserInfoBean.UserInfo;
 import com.czvv.repairsystemmobile.db.DBHelper;
-import com.czvv.repairsystemmobile.service.Sys_deptService;
-import com.czvv.repairsystemmobile.service.Sys_userService;
 import com.czvv.repairsystemmobile.service.TechService;
-import com.czvv.repairsystemmobile.utils.BooleanAndintUtil;
 
 public class TechEqptDao implements TechService {
 
@@ -146,6 +138,58 @@ public class TechEqptDao implements TechService {
 		return list;
 	}
 
+	
+	@Override
+	public TechEqpt getTechEqpt(String EqptInfoID) {
+		TechEqptBean bean = new TechEqptBean();
+		TechEqpt techEqpt = null;
+		SQLiteDatabase database = null;
+		try {
+			database = helper.getReadableDatabase();
+			Cursor cursor = database.query(TABLE_NAME, null, "TechEqptID = ?",
+					new String[] { EqptInfoID }, null, null, null);
+			if (cursor.moveToNext()) {
+				techEqpt = bean.new TechEqpt();
+				techEqpt.TechEqptID = cursor.getString(cursor
+						.getColumnIndex("TechEqptID"));
+				techEqpt.EqptName = cursor.getString(cursor
+						.getColumnIndex("EqptName"));
+				techEqpt.dept_id = cursor.getString(cursor
+						.getColumnIndex("dept_id"));
+				techEqpt.EqptAddress = cursor.getString(cursor
+						.getColumnIndex("EqptAddress"));
+				techEqpt.EqptUse = cursor.getString(cursor
+						.getColumnIndex("EqptUse"));
+				techEqpt.EqptOwner = cursor.getString(cursor
+						.getColumnIndex("EqptOwner"));
+				techEqpt.EqptStatus = cursor.getString(cursor
+						.getColumnIndex("EqptStatus"));
+				techEqpt.InDate = cursor.getString(cursor
+						.getColumnIndex("InDate"));
+				techEqpt.CreateDate = cursor.getString(cursor
+						.getColumnIndex("CreateDate"));
+				techEqpt.LastUpdateDate = cursor.getString(cursor
+						.getColumnIndex("LastUpdateDate"));
+				techEqpt.EqptInfoID = cursor.getString(cursor
+						.getColumnIndex("EqptInfoID"));
+				techEqpt.WorkAreaID = cursor.getString(cursor
+						.getColumnIndex("WorkAreaID"));
+				techEqpt.EqptType = cursor.getString(cursor
+						.getColumnIndex("EqptType"));
+				techEqpt.RepairDeptID = cursor.getString(cursor
+						.getColumnIndex("RepairDeptID"));
+			}
+		} catch (Exception e) {
+			System.out.println("----getAllFiveTEqptList-->" + e.getMessage());
+		} finally {
+			if (database != null) {
+				database.close();
+			}
+		}
+		return techEqpt;
+	}
+	
+	
 	@Override
 	public String getTechEqptID(String EqptInfoID) {
 
@@ -155,7 +199,7 @@ public class TechEqptDao implements TechService {
 		try {
 			database = helper.getReadableDatabase();
 			Cursor cursor = database.query(TABLE_NAME,
-					new String[] { "TechEqptID" }, "EqptInfoID = ?",
+					new String[] {"TechEqptID"}, "EqptInfoID = ?",
 					new String[] { EqptInfoID }, null, null, null);
 			if (cursor.moveToNext()) {
 				techEqptID = cursor.getString(0);

@@ -4,7 +4,7 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import com.czvv.repairsystemmobile.utils.Constants;
+import com.czvv.repairsystemmobile.Constants;
 
 public class DBHelper extends SQLiteOpenHelper {
 
@@ -25,7 +25,24 @@ public class DBHelper extends SQLiteOpenHelper {
 		createEqptInfoTable(db);// 机械设备关联表
 		createFiveTEqptTable(db);// 行安设备表
 		createRepairSubmitTable(db);// 报修上传表
-		createRepairHandleTable(db);// 报修处理次
+		createRepairHandleTable(db);// 报修处理表
+		createtoRepairHandlerTable(db);// 故障处理表
+	}
+
+	private void createtoRepairHandlerTable(SQLiteDatabase db) {
+		StringBuffer sql = new StringBuffer();
+		sql.append("create table torepair_handler (");
+		sql.append("RepairID varchar(100) primary key unique not null,");
+		sql.append("RepairDeptID varchar(50),");
+		sql.append("FaultType varchar(50) not null,");
+		sql.append("FaultReason varchar(50) not null,");
+		sql.append("RepairUserName varchar(100),");
+		sql.append("FaultHandle varchar(100),");
+		sql.append("RepairFinishTime varchar(100),");
+		sql.append("ProbType varchar(100),");
+		sql.append("ProbSysName varchar(100)");
+		sql.append(");");
+		db.execSQL(sql.toString());
 	}
 
 	@Override
